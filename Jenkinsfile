@@ -29,10 +29,16 @@ node {
         '''
       }
       // get publish settings
-      def pubProfilesJson = sh script: "az webapp deployment list-publishing-profiles -g $resourceGroup -n $webAppName", returnStdout: true
-      def ftpProfile = getFtpPublishProfile pubProfilesJson
-      // upload package
-     sh "curl -T target/calculator-1.0.war $ftpProfile.url/webapps/ROOT.war -u '$ftpProfile.username:$ftpProfile.password'"
+      def pubProfilesJson = sh(script: "az webapp deployment list-publishing-profiles -g $resourceGroup -n $webAppName", returnStdout: true).trim()
+      def ftpProfile = getFtpPublishProfile(pubProfilesJson)
+
+      if (ftpProfile) {
+        // upload package
+        sh "az webapp deploy --resource-group ${resourceGroup} --name ${webAppName} --src-path target/calculator-1.0.war --type war"
+      } else {
+        error("FTP publish profile not found.")
+      }
+
       // log out
       sh 'az logout'
     }
